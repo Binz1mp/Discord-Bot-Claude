@@ -20,7 +20,7 @@ const anthropic = new Anthropic({
 // 환경 변수에서 필요한 설정값들을 가져옵니다.
 const DISCORD_BOT_TOKEN = process.env.DISCORD_BOT_TOKEN;
 const ALLOWED_USER_IDS = process.env.ALLOWED_USER_IDS.split(',');
-const ALLOWED_SERVER_ID = process.env.ALLOWED_SERVER_ID;
+const ALLOWED_SERVER_IDS = process.env.ALLOWED_SERVER_IDS.split(',');
 
 // 전역 변수 설정
 let isNyanModeEnabled = true; // '냥' 모드 활성화 여부
@@ -97,15 +97,15 @@ async function processRequest(interaction, query) {
 client.once('ready', async () => {
   console.log(`${client.user.tag}으로 로그인했습니다!`);
   
-  // 허용된 서버를 확인합니다.
-  const allowedServer = client.guilds.cache.get(ALLOWED_SERVER_ID);
-  if (!allowedServer) {
+  // 허용된 서버들을 확인합니다.
+  const allowedServers = client.guilds.cache.filter(guild => ALLOWED_SERVER_IDS.includes(guild.id));
+  if (allowedServers.size === 0) {
     console.error('허용된 서버를 찾을 수 없습니다. 봇을 종료합니다.');
     client.destroy();
     process.exit(1);
   }
   
-  console.log(`허용된 서버 "${allowedServer.name}"에서 작동 중입니다.`);
+  console.log(`다음 서버들에서 작동 중입니다: ${allowedServers.map(server => `"${server.name}" (ID: ${server.id})`).join(', ')}`);
 
   // 슬래시 명령어를 정의합니다.
   const commands = [
@@ -113,7 +113,7 @@ client.once('ready', async () => {
       .setName('nbz')
       .setDescription('Claude AI에게 질문하기')
       .addStringOption(option => 
-        option.setName('할 말')
+        option.setName('say')
           .setDescription('Claude AI에게 물어볼 질문')
           .setRequired(true)),
     new SlashCommandBuilder()
@@ -132,27 +132,31 @@ client.once('ready', async () => {
   // Discord API에 슬래시 명령어를 등록합니다.
   const rest = new REST({ version: '10' }).setToken(DISCORD_BOT_TOKEN);
 
-  try {
-    await rest.put(
-      Routes.applicationGuildCommands(client.user.id, ALLOWED_SERVER_ID),
-      { body: commands },
-    );
-    console.log('슬래시 명령어가 성공적으로 등록되었습니다!');
-  } catch (error) {
-    console.error('슬래시 명령어 등록 중 오류 발생:', error);
+  for (const serverId of ALLOWED_SERVER_IDS) {
+    try {
+      await rest.put(
+        Routes.applicationGuildCommands(client.user.id, serverId),
+        { body: commands },
+      );
+      const server = client.guilds.cache.get(serverId);
+      const serverName = server ? server.name : "Unknown Server";
+      console.log(`서버 "${serverName}" (ID: ${serverId})에 슬래시 명령어가 성공적으로 등록되었습니다!`);
+    } catch (error) {
+      console.error(`서버 ID ${serverId}에 슬래시 명령어 등록 중 오류 발생:`, error);
+    }
   }
 });
 
 // 상호작용(명령어 사용 등) 이벤트 핸들러
 client.on('interactionCreate', async interaction => {
   if (!interaction.isCommand()) return;
-  if (interaction.guildId !== ALLOWED_SERVER_ID) return;
+  if (!ALLOWED_SERVER_IDS.includes(interaction.guildId)) return;
   if (!ALLOWED_USER_IDS.includes(interaction.user.id)) return;
 
   const { commandName } = interaction;
 
   if (commandName === 'nbz') {
-    const query = interaction.options.getString('할 말');
+    const query = interaction.options.getString('say');
     if (isProcessing) {
       // 이미 처리 중인 요청이 있으면 큐에 추가합니다.
       requestQueue.push({ interaction, query });
