@@ -56,11 +56,11 @@ DiscordBot-Claude/
 3. `.env` 파일 설정:
    - `.env` 파일을 생성하고 필요한 환경 변수를 설정합니다.
    - 예시:
-     ```
+     ```shell
      CLAUDE_API_KEY=your_claude_api_key_here
      DISCORD_BOT_TOKEN=your_discord_bot_token_here
-     ALLOWED_USER_IDS=123456789,987654321
-     ALLOWED_SERVER_ID=your_server_id_here
+     ALLOWED_USER_IDS=user_id_here # 공백 없이, 예: ALLOWED_USER_IDS=123456789,987654321 ...
+     ALLOWED_SERVER_IDS=your_server_id_here # 공백 없이, 예: ALLOWED_SERVER_IDS=111222333444555666,222333444555666777,333444555666777888 ...
      ```
 
 4. 봇 실행:
