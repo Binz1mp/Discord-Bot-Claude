@@ -43,7 +43,7 @@ DiscordBot-Claude/
 
 1. 저장소 복제:
    ```
-   git clone https://github.com/your-username/DiscordBot-Claude.git
+   git clone https://github.com/Binz1mp/DiscordBot-Claude.git
    cd DiscordBot-Claude
    ```
 
