@@ -49,7 +49,7 @@ DiscordBot-Claude/
 
 2. 필요한 패키지 설치:
    ```
-   npm install
+   yarn
    ```
 
 3. `.env` 파일 설정:
