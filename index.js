@@ -100,7 +100,7 @@ client.once('ready', async () => {
       .setName('nbz')
       .setDescription('Claude AI에게 질문하기')
       .addStringOption(option => 
-        option.setName('query')
+        option.setName('할 말')
           .setDescription('Claude AI에게 물어볼 질문')
           .setRequired(true)),
     new SlashCommandBuilder()
