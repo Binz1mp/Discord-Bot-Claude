@@ -1,4 +1,4 @@
-# DiscordBot-Claude
+# Discord-Bot-Claude
 
 이 프로젝트는 Claude API를 사용하여 사용자 질문에 답변하는 Discord 봇을 구현합니다.  
 이 봇은 특정 사용자만 사용할 수 있도록 제한되어 있습니다.  
