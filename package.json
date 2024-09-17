@@ -1,5 +1,5 @@
 {
-  "name": "discordbot-claude",
+  "name": "discord-bot-claude",
   "version": "1.0.0",
   "description": "A Discord bot using Claude API made of Node.js",
   "main": "index.js",
