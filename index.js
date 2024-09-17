@@ -1,8 +1,7 @@
-const { Client, GatewayIntentBits } = require('discord.js');
+const { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder } = require('discord.js');
 const Anthropic = require('@anthropic-ai/sdk');
 require('dotenv').config();
 
-// Discord 클라이언트를 생성
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -11,30 +10,18 @@ const client = new Client({
   ],
 });
 
-// Anthropic 클라이언트를 생성
 const anthropic = new Anthropic({
   apiKey: process.env.CLAUDE_API_KEY,
 });
 
-// 환경 변수에서 필요한 값들을 가져옴
 const DISCORD_BOT_TOKEN = process.env.DISCORD_BOT_TOKEN;
 const ALLOWED_USER_IDS = process.env.ALLOWED_USER_IDS.split(',');
 const ALLOWED_SERVER_ID = process.env.ALLOWED_SERVER_ID;
 
-// '냥!' 모드의 상태를 저장하는 변수입니다. 기본값은 true(활성화)
 let isNyanModeEnabled = true;
-
-// 현재 처리 중인 요청이 있는지 확인하는 변수
 let isProcessing = false;
-
-// 대기 중인 요청을 저장하는 큐
 const requestQueue = [];
 
-/**
- * Claude API를 호출하고 응답을 수정하는 함수
- * @param {string} message - 사용자의 입력 메시지
- * @returns {string} - Claude API의 응답 (필요시 '냥!' 모드 적용)
- */
 async function callClaudeAPI(message) {
   try {
     const response = await anthropic.messages.create({
@@ -58,11 +45,6 @@ async function callClaudeAPI(message) {
   }
 }
 
-/**
- * 모든 서술어 끝에 '냥!'을 추가하는 함수
- * @param {string} text - 원본 텍스트
- * @returns {string} - '냥!'이 추가된 텍스트
- */
 function addNyangToPredicate(text) {
   const sentences = text.split(/([.!?])\s*/).filter(Boolean);
   
@@ -79,19 +61,15 @@ function addNyangToPredicate(text) {
   }).join(' ');
 }
 
-/**
- * 요청을 처리하는 함수
- * @param {Object} message - Discord 메시지 객체
- * @param {string} query - 사용자의 질문
- */
-async function processRequest(message, query) {
+async function processRequest(interaction, query) {
   isProcessing = true;
+  await interaction.deferReply();
   try {
     const response = await callClaudeAPI(query);
-    await message.reply(response);
+    await interaction.editReply(response);
   } catch (error) {
     console.error('요청 처리 중 오류 발생:', error);
-    await message.reply(isNyanModeEnabled
+    await interaction.editReply(isNyanModeEnabled
       ? '죄송하다냥! 요청을 처리하는 중에 오류가 발생했다냥!'
       : '죄송합니다, 요청을 처리하는 중에 오류가 발생했습니다.');
   } finally {
@@ -100,12 +78,11 @@ async function processRequest(message, query) {
 
   if (requestQueue.length > 0) {
     const nextRequest = requestQueue.shift();
-    processRequest(nextRequest.message, nextRequest.query);
+    processRequest(nextRequest.interaction, nextRequest.query);
   }
 }
 
-// 봇이 준비되었을 때 실행되는 이벤트 핸들러
-client.once('ready', () => {
+client.once('ready', async () => {
   console.log(`${client.user.tag}으로 로그인했습니다!`);
   
   const allowedServer = client.guilds.cache.get(ALLOWED_SERVER_ID);
@@ -116,38 +93,72 @@ client.once('ready', () => {
   }
   
   console.log(`허용된 서버 "${allowedServer.name}"에서 작동 중입니다.`);
+
+  // 슬래시 명령어 등록
+  const commands = [
+    new SlashCommandBuilder()
+      .setName('nbz')
+      .setDescription('Claude AI에게 질문하기')
+      .addStringOption(option => 
+        option.setName('query')
+          .setDescription('Claude AI에게 물어볼 질문')
+          .setRequired(true)),
+    new SlashCommandBuilder()
+      .setName('nyanmode')
+      .setDescription('냥 모드 설정')
+      .addStringOption(option =>
+        option.setName('status')
+          .setDescription('냥 모드를 켜거나 끕니다')
+          .setRequired(true)
+          .addChoices(
+            { name: '켜기', value: 'on' },
+            { name: '끄기', value: 'off' }
+          ))
+  ];
+
+  const rest = new REST({ version: '10' }).setToken(DISCORD_BOT_TOKEN);
+
+  try {
+    await rest.put(
+      Routes.applicationGuildCommands(client.user.id, ALLOWED_SERVER_ID),
+      { body: commands },
+    );
+    console.log('슬래시 명령어가 성공적으로 등록되었습니다!');
+  } catch (error) {
+    console.error('슬래시 명령어 등록 중 오류 발생:', error);
+  }
 });
 
-// 메시지가 생성되었을 때 실행되는 이벤트 핸들러
-client.on('messageCreate', async (message) => {
-  if (message.guild.id !== ALLOWED_SERVER_ID) return;
-  if (message.author.bot) return;
-  if (!ALLOWED_USER_IDS.includes(message.author.id)) return;
+client.on('interactionCreate', async interaction => {
+  if (!interaction.isCommand()) return;
+  if (interaction.guildId !== ALLOWED_SERVER_ID) return;
+  if (!ALLOWED_USER_IDS.includes(interaction.user.id)) return;
 
-  if (message.content === '!nyanmode on') {
-    isNyanModeEnabled = true;
-    await message.reply('냥 모드가 활성화되었다냥!');
-    return;
-  } 
-  
-  if (message.content === '!nyanmode off') {
-    isNyanModeEnabled = false;
-    await message.reply('냥 모드가 비활성화되었습니다.');
-    return;
-  }
+  const { commandName } = interaction;
 
-  if (message.content.startsWith('!claude')) {
-    const query = message.content.slice(7).trim();
+  if (commandName === 'nbz') {
+    const query = interaction.options.getString('query');
     if (isProcessing) {
-      requestQueue.push({ message, query });
-      await message.reply(isNyanModeEnabled
-        ? '지금은 너무 바쁘다냥! 조금 있다가 답변해주겠다냥!'
-        : '현재 다른 질문을 처리 중입니다. 잠시 후에 답변 드리겠습니다.');
+      requestQueue.push({ interaction, query });
+      await interaction.reply({
+        content: isNyanModeEnabled
+          ? '지금은 너무 바쁘다냥! 조금 있다가 답변해주겠다냥!'
+          : '현재 다른 질문을 처리 중입니다. 잠시 후에 답변 드리겠습니다.',
+        ephemeral: true
+      });
     } else {
-      processRequest(message, query);
+      processRequest(interaction, query);
     }
+  } else if (commandName === 'nyanmode') {
+    const status = interaction.options.getString('status');
+    isNyanModeEnabled = status === 'on';
+    await interaction.reply({
+      content: isNyanModeEnabled
+        ? '냥 모드가 활성화되었다냥!'
+        : '냥 모드가 비활성화되었습니다.',
+      ephemeral: true
+    });
   }
 });
 
-// Discord에 봇 로그인
 client.login(DISCORD_BOT_TOKEN);
