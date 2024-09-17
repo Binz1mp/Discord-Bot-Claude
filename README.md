@@ -12,7 +12,7 @@ DiscordBot-Claude/
 ├── index.js          # 메인 봇 로직
 ├── .env              # 환경 변수 설정 파일
 ├── package.json      # 프로젝트 메타데이터 및 의존성 정보
-├── package-lock.json # 의존성 버전 고정 파일
+├── yarn.lock         # 의존성 버전 고정 파일
 └── README.md         # 프로젝트 설명 (현재 파일)
 ```
 
@@ -31,8 +31,8 @@ DiscordBot-Claude/
    - 프로젝트의 메타데이터와 의존성 정보를 담고 있는 파일입니다.
    - 필요한 npm 패키지들이 나열되어 있습니다.
 
-4. `package-lock.json`
-   - npm에 의해 자동으로 생성되는 파일로, 의존성 트리의 정확한 버전을 고정합니다.
+4. `yarn.lock`
+   - yarn에 의해 자동으로 생성되는 파일로, 의존성 트리의 정확한 버전을 고정합니다.
    - 프로젝트의 재현성을 보장하는 데 중요합니다.
 
 5. `README.md`
