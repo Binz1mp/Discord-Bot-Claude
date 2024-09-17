@@ -43,8 +43,8 @@ DiscordBot-Claude/
 
 1. 저장소 복제:
    ```
-   git clone https://github.com/Binz1mp/DiscordBot-Claude.git
-   cd DiscordBot-Claude
+   git clone https://github.com/Binz1mp/Discord-Bot-Claude.git
+   cd Discord-Bot-Claude
    ```
 
 2. 필요한 패키지 설치:
