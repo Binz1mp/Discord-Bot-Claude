@@ -23,7 +23,7 @@ const ALLOWED_USER_IDS = process.env.ALLOWED_USER_IDS.split(',');
 const ALLOWED_SERVER_IDS = process.env.ALLOWED_SERVER_IDS.split(',');
 
 // 전역 변수 설정
-let isNyanModeEnabled = true; // '냥' 모드 활성화 여부
+let isNyanModeEnabled = false; // '냥' 모드 활성화 여부
 let isProcessing = false; // 현재 요청 처리 중인지 여부
 const requestQueue = []; // 대기 중인 요청을 저장할 큐
 
